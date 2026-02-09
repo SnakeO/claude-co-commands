@@ -41,7 +41,17 @@ Copy `plugins/co-commands/skills/` contents to `~/.claude/skills/`.
 
 ## MCP Server Setup (Required)
 
-These commands require the Codex MCP server. Add this to the `mcpServers` object in `~/.claude.json`:
+These commands require the Codex MCP server.
+
+### Option A: CLI (Recommended)
+
+```bash
+claude mcp add validate-plans-and-brainstorm-ideas -- npx -y @openai/codex mcp-server
+```
+
+### Option B: Manual
+
+Add this to the `mcpServers` object in `~/.claude.json`:
 
 ```json
 "validate-plans-and-brainstorm-ideas": {
@@ -50,25 +60,12 @@ These commands require the Codex MCP server. Add this to the `mcpServers` object
 }
 ```
 
-**Full example** (if you have no other MCP servers):
-
-```json
-{
-  "mcpServers": {
-    "validate-plans-and-brainstorm-ideas": {
-      "command": "npx",
-      "args": ["-y", "@openai/codex", "mcp-server"]
-    }
-  }
-}
-```
-
 If you already have entries in `mcpServers`, merge this as an additional key. Do not overwrite existing servers.
 
-## Verify Setup
+### Verify
 
-1. Restart Claude Code after editing `~/.claude.json`.
-2. Confirm the MCP server loads (you should see `validate-plans-and-brainstorm-ideas` in your available tools).
+1. Restart Claude Code (if you edited `~/.claude.json` manually).
+2. Run `claude mcp list` to confirm the server is registered.
 3. Test with `/co-brainstorm test idea` and confirm it triggers the MCP call.
 
 ## Command Details
