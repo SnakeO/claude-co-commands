@@ -7,21 +7,30 @@ description: Generate a parallel plan via Codex. Use when you want an additional
 
 You MUST immediately call the `mcp__validate-plans-and-brainstorm-ideas__codex` tool with these parameters:
 
-- `prompt`: `/plan $ARGUMENTS`
-- `sandbox`: `read-only`
+- `prompt`: (construct as shown below)
+- `sandbox`: `workspace-write`
 - `approval-policy`: `never`
 - `cwd`: (use the current working directory)
+
+### Prompt Format
+
+```text
+$ARGUMENTS
+
+Write your final plan to a file at /tmp/<descriptive-slug>.md where <descriptive-slug> is a short kebab-case name derived from the task (e.g. /tmp/add-oauth2-auth.md). Respond with ONLY the filepath you wrote to. Do not include the plan text in your response. If you cannot write the file for any reason, fall back to responding with the full plan text instead.
+```
 
 Run this call in the background so you can continue your own planning work in parallel.
 
 ## After The Result Returns
 
-1. Read the Codex plan output.
-2. Compare it against your own plan and look for:
+1. The response should be a filepath (e.g. `/tmp/add-oauth2-auth.md`). Read that file to get the Codex plan.
+2. If the response is the plan text itself (fallback), use it directly.
+3. Compare the Codex plan against your own plan and look for:
    - Approaches you missed
    - Simpler alternatives
    - Risks or edge cases you overlooked
-3. Integrate useful ideas into your plan and discard the rest.
+4. Integrate useful ideas into your plan and discard the rest.
 
 ## Continuing The Conversation
 
