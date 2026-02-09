@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "snakeo-co-commands",
+  "description": "Co-* planning, validation, and brainstorming commands for Claude Code",
+  "owner": {
+    "name": "snakeo"
+  },
+  "metadata": {
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "co-commands",
+      "source": "./plugins/co-commands",
+      "description": "Commands for /co-plan, /co-validate, and /co-brainstorm via Codex MCP",
+      "version": "1.0.0",
+      "category": "development"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "co-commands",
+  "version": "1.0.0",
+  "description": "Co-* command skills for plan generation, validation, and brainstorming via Codex MCP",
+  "author": {
+    "name": "snakeo"
+  },
+  "skills": ["./skills/*"]
+}
