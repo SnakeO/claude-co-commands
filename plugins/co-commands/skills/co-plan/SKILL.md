@@ -5,25 +5,29 @@ description: Generate a parallel plan via Codex. Use when you want an additional
 
 # Co-Plan: Generate a Parallel Plan via Codex
 
-You MUST immediately call the `mcp__validate-plans-and-brainstorm-ideas__codex` tool with these parameters:
+## Step 1: Launch Codex in the Background
 
-- `prompt`: `/plan $ARGUMENTS — When you have finished planning, do NOT send the plan yet. Instead respond with exactly: "I'm ready to tell you the plan. Just let me know when." Then wait for my reply before sending the plan.`
+You MUST immediately call the `mcp__validate-plans-and-brainstorm-ideas__codex` tool **in the background** with these parameters:
+
+- `prompt`: `Create a detailed implementation plan for the following task. Think deeply about architecture, steps, edge cases, and trade-offs — but do NOT share the plan yet. When you are done planning, respond with exactly: "I'm ready" and nothing else. Wait for my next message before sharing the plan.\n\nTask: $ARGUMENTS`
 - `sandbox`: `read-only`
 - `approval-policy`: `never`
 - `cwd`: (use the current working directory)
 
-Run this call in the background so you can continue your own planning work in parallel.
+This MUST run in the background so you can work in parallel.
 
-## After The Result Returns
+## Step 2: Create Your Own Plan
 
-The first response should be Codex saying it is ready. **You MUST complete your own plan BEFORE requesting the Codex plan.** Do not read, request, or look at the Codex plan until your own plan is fully written. The entire point is to produce two independent plans and then compare them — reading Codex's plan early defeats this purpose.
+While Codex works in the background, create your own independent plan. **Do NOT check the Codex result until you have finished your own plan.** The entire point is to produce two independent plans and then compare them — reading Codex's plan early defeats this purpose and introduces bias.
 
-Only after your own plan is finalized, use `mcp__validate-plans-and-brainstorm-ideas__codex-reply` with:
+## Step 3: Retrieve and Compare
+
+Only after your own plan is finalized, check that the background Codex call has returned "I'm ready". Then use `mcp__validate-plans-and-brainstorm-ideas__codex-reply` with:
 
 - `threadId`: the thread ID from the previous response
 - `prompt`: `Go ahead, send the plan.`
 
-Then once the plan arrives:
+Once the plan arrives:
 
 1. Read the Codex plan output.
 2. Compare it against your own plan and look for:
