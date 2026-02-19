@@ -5,20 +5,25 @@ description: Bounce ideas off Codex. Use when you want fast alternative ideas, c
 
 # Co-Brainstorm: Bounce Ideas Off Codex
 
-## Step 1: Launch Codex in the Background
+## Step 1: Spawn a Background Subagent for Codex
 
-You MUST immediately call the `mcp__validate-plans-and-brainstorm-ideas__codex` tool **in the background** with these parameters:
+You MUST immediately spawn a **background subagent** (using the Task tool with `run_in_background: true`) to handle all communication with Codex. The subagent should:
 
-- `prompt`: `Brainstorm on the following topic. Think deeply, explore multiple angles, and prepare your ideas — but do NOT share them yet. When you are done thinking, respond with exactly: "I'm ready" and nothing else. Wait for my next message before sharing your ideas.\n\nTopic: $ARGUMENTS`
-- `sandbox`: `read-only`
-- `approval-policy`: `never`
-- `cwd`: (use the current working directory)
+1. Call `mcp__validate-plans-and-brainstorm-ideas__codex` with:
+   - `prompt`: `Brainstorm on the following topic. Think deeply, explore multiple angles, and prepare your ideas — but do NOT share them yet. If you need to ask clarifying questions about the topic before brainstorming, ask them now. Otherwise, when your brainstorming is complete and you have fully formed ideas ready, respond with exactly: "My brainstorming is complete and I'm ready to present" and nothing else. Wait for my next message before sharing your ideas.\n\nTopic: $ARGUMENTS`
+   - `sandbox`: `read-only`
+   - `approval-policy`: `never`
+   - `cwd`: (use the current working directory)
 
-This MUST run in the background so you can work in parallel.
+2. If Codex asks clarifying questions instead of saying it's ready, the subagent should answer them using its own judgment and the codebase context, then wait for Codex to finish and respond with "My brainstorming is complete and I'm ready to present".
+
+3. Once Codex says "My brainstorming is complete and I'm ready to present", the subagent should report back that Codex is ready (but NOT request the ideas yet — that happens in Step 3).
+
+The subagent handles the back-and-forth so the main agent is free to do its own work.
 
 ## Step 2: Do Your Own Brainstorming
 
-While Codex works in the background, do your own independent brainstorming on the topic. Think through:
+While the subagent communicates with Codex in the background, do your own independent brainstorming on the topic. Think through:
 
 - Multiple approaches and alternatives
 - Trade-offs and risks
@@ -29,9 +34,9 @@ Write down your own ideas and perspectives. **Do NOT check the Codex result unti
 
 ## Step 3: Retrieve and Compare
 
-Only after your own brainstorming is complete, check that the background Codex call has returned "I'm ready". Then use `mcp__validate-plans-and-brainstorm-ideas__codex-reply` with:
+Only after your own brainstorming is complete, confirm the background subagent has reported that Codex is ready. Then use `mcp__validate-plans-and-brainstorm-ideas__codex-reply` with:
 
-- `threadId`: the thread ID from the previous response
+- `threadId`: the thread ID from the Codex session
 - `prompt`: `Go ahead, share your ideas.`
 
 Once the ideas arrive:
