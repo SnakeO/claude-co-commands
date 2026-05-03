@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=SnakeO&project=claude-co-commands&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 # Claude Co-Commands Plugin
 
 3 collaboration commands for Claude Code that use the [Codex MCP server](https://github.com/openai/codex) to generate parallel plans, validate plans, and brainstorm ideas.
