@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# codex-session: one Codex conversation per folder, driven through `codex exec`.
+#
+# The co-* skills used the Codex MCP server (`codex mcp-server`), which OpenAI removed in
+# Codex 0.154.0. This drives the supported CLI instead, always in the read-only sandbox.
+#
+#   codex-session new <label>        make a session folder, print its path
+#   codex-session run <dir>          send <dir>/prompt.md as the first message (slow: run it in
+#                                    the background); the reply lands in <dir>/reply.md
+#   codex-session read <dir>         print the latest reply
+#   codex-session reply <dir>        send a follow-up read from stdin, print the reply
+#
+# The prompt is always passed on stdin, so quotes and newlines in it need no escaping, and
+# Codex never sits waiting for terminal input (it reads stdin when stdin is not a terminal).
+
+set -u
+
+die() { echo "codex-session: $*" >&2; exit 1; }
+
+need_codex() {
+  command -v codex >/dev/null 2>&1 ||
+    die "the Codex CLI is not installed. Install it with 'npm install -g @openai/codex' (or 'brew install codex'), then run 'codex login'."
+}
+
+# The session id is in the first event: {"type":"thread.started","thread_id":"..."}
+thread_id_of() { sed -nE '1s/.*"thread_id": *"([^"]+)".*/\1/p' "$1"; }
+
+report_failure() {  # <dir> <exit code> <events file>
+  echo "codex-session: Codex did not reply (exit $2)." >&2
+  if [ -s "$1/stderr.log" ]; then
+    echo "--- last lines of $1/stderr.log:" >&2
+    grep -v '^Reading additional input from stdin' "$1/stderr.log" | tail -n 15 >&2
+  fi
+  grep -o '"type": *"error"[^}]*' "$3" 2>/dev/null | tail -n 3 >&2
+  echo "If this is an auth problem, run 'codex login' in a terminal and try again." >&2
+  exit 1
+}
+
+cmd="${1:-}"
+case "$cmd" in
+  new)
+    label="${2:-codex}"
+    tmp="${TMPDIR:-/tmp}"; dir="$(mktemp -d "${tmp%/}/${label}.XXXXXX")" || die "could not create a session folder"
+    echo "$dir"
+    ;;
+
+  run)
+    need_codex
+    dir="${2:-}"; [ -d "$dir" ] || die "no such session folder: $dir"
+    [ -s "$dir/prompt.md" ] || die "write the first message to $dir/prompt.md before 'run'"
+    codex exec --json --sandbox read-only --skip-git-repo-check -C "$PWD" \
+      -o "$dir/reply.md" - < "$dir/prompt.md" > "$dir/events.jsonl" 2> "$dir/stderr.log"
+    status=$?
+    thread_id_of "$dir/events.jsonl" > "$dir/thread_id"
+    cp "$dir/reply.md" "$dir/reply-1.md" 2>/dev/null
+    if [ $status -ne 0 ] || [ ! -s "$dir/reply.md" ]; then report_failure "$dir" "$status" "$dir/events.jsonl"; fi
+    echo "Codex replied ($(wc -w < "$dir/reply.md" | tr -d ' ') words). Read it with: codex-session read $dir"
+    ;;
+
+  read)
+    dir="${2:-}"; [ -d "$dir" ] || die "no such session folder: $dir"
+    [ -s "$dir/reply.md" ] || die "no reply yet in $dir (is 'run' still going?)"
+    cat "$dir/reply.md"
+    ;;
+
+  reply)
+    need_codex
+    dir="${2:-}"; [ -d "$dir" ] || die "no such session folder: $dir"
+    tid="$(cat "$dir/thread_id" 2>/dev/null)"
+    [ -n "$tid" ] || die "no Codex session id in $dir; did 'run' finish?"
+    n=2; while [ -e "$dir/prompt-$n.md" ]; do n=$((n + 1)); done
+    cat > "$dir/prompt-$n.md"
+    [ -s "$dir/prompt-$n.md" ] || die "the follow-up message was empty (pass it on stdin)"
+    # `exec resume` has no --sandbox flag; the config override keeps the follow-up read-only too
+    codex exec resume "$tid" --json --skip-git-repo-check -c 'sandbox_mode="read-only"' \
+      -o "$dir/reply-$n.md" - < "$dir/prompt-$n.md" > "$dir/events-$n.jsonl" 2>> "$dir/stderr.log"
+    status=$?
+    if [ $status -ne 0 ] || [ ! -s "$dir/reply-$n.md" ]; then report_failure "$dir" "$status" "$dir/events-$n.jsonl"; fi
+    cp "$dir/reply-$n.md" "$dir/reply.md"
+    cat "$dir/reply-$n.md"
+    ;;
+
+  *)
+    sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+    [ -z "$cmd" ] || exit 1
+    ;;
+esac

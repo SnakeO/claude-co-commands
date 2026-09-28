@@ -1,6 +1,6 @@
 # Claude Co-Commands Plugin
 
-3 collaboration commands for Claude Code that use the [Codex MCP server](https://github.com/openai/codex) to generate parallel plans, validate plans, and brainstorm ideas.
+3 collaboration commands for Claude Code that use the [Codex CLI](https://github.com/openai/codex) to generate parallel plans, validate plans, and brainstorm ideas.
 
 ## Commands
 
@@ -12,8 +12,18 @@
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) (for `npx`)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
+- The [Codex CLI](https://github.com/openai/codex), signed in:
+
+  ```bash
+  npm install -g @openai/codex    # or: brew install codex
+  codex login
+  ```
+
+No MCP server is needed. The skills run Codex through a small helper, `scripts/codex-session`,
+which drives `codex exec` in Codex's read-only sandbox and keeps each conversation in a temporary
+folder so follow-ups continue the same Codex session. A background subagent starts Codex and
+answers any clarifying questions it asks, while Claude does its own independent work.
 
 ## Installation
 
@@ -39,34 +49,23 @@ cp -r claude-co-commands/plugins/co-commands/skills/* ~/.claude/skills/
 
 Copy `plugins/co-commands/skills/` contents to `~/.claude/skills/`.
 
-## MCP Server Setup (Required)
+## Upgrading from 1.x
 
-These commands require the Codex MCP server.
-
-### Option A: CLI (Recommended)
+Versions 1.x used the Codex MCP server (`codex mcp-server`). OpenAI removed that command in
+Codex 0.154.0, so the server now exits at startup and Claude Code reports
+`validate-plans-and-brainstorm-ideas ... Connection closed`. Version 2.0 does not use it.
+Remove the old server entry from wherever you added it:
 
 ```bash
-claude mcp add validate-plans-and-brainstorm-ideas -- npx -y @openai/codex mcp-server
+claude mcp remove validate-plans-and-brainstorm-ideas -s user      # ~/.claude.json
+claude mcp remove validate-plans-and-brainstorm-ideas -s project   # a project's .mcp.json
 ```
-
-### Option B: Manual
-
-Add this to the `mcpServers` object in `~/.claude.json`:
-
-```json
-"validate-plans-and-brainstorm-ideas": {
-  "command": "npx",
-  "args": ["-y", "@openai/codex", "mcp-server"]
-}
-```
-
-If you already have entries in `mcpServers`, merge this as an additional key. Do not overwrite existing servers.
 
 ### Verify
 
-1. Restart Claude Code (if you edited `~/.claude.json` manually).
-2. Run `claude mcp list` to confirm the server is registered.
-3. Test with `/co-brainstorm test idea` and confirm it triggers the MCP call.
+1. Run `codex login status`; it should say you are logged in.
+2. Restart Claude Code after updating the plugin.
+3. Test with `/co-brainstorm test idea`. It should spawn a background subagent that runs `codex-session run`.
 
 ## Command Details
 
@@ -104,10 +103,10 @@ Returns critical issues, simplification opportunities, and alternative approache
 
 | Problem | Solution |
 |---------|----------|
-| `npx: command not found` | Install [Node.js](https://nodejs.org/) which includes npm/npx |
-| MCP tool not found in session | Verify the server name is exactly `validate-plans-and-brainstorm-ideas` in `~/.claude.json` |
-| JSON parse errors in `~/.claude.json` | Validate your JSON (check commas and braces) |
-| Commands not appearing after install | Restart Claude Code and verify skill folders exist |
+| `the Codex CLI is not installed` | `npm install -g @openai/codex` (or `brew install codex`), then `codex login` |
+| `Codex did not reply` | Read the lines it prints from `stderr.log`. For auth errors run `codex login` in a terminal |
+| `validate-plans-and-brainstorm-ideas ... Connection closed` at startup | A leftover 1.x MCP server entry. Remove it (see Upgrading from 1.x) |
+| Commands not appearing after install | Restart Claude Code and verify the skill folders exist |
 
 ## License
 

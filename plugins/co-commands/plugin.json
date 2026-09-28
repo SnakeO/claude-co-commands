@@ -1,9 +1,11 @@
 {
   "name": "co-commands",
-  "version": "1.3.0",
-  "description": "Co-* command skills for plan generation, validation, and brainstorming via Codex MCP",
+  "version": "2.0.0",
+  "description": "Co-* command skills for plan generation, validation, and brainstorming with the Codex CLI",
   "author": {
     "name": "snakeo"
   },
-  "skills": ["./skills/*"]
+  "skills": [
+    "./skills/*"
+  ]
 }

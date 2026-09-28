@@ -5,21 +5,48 @@ description: Generate a parallel plan via Codex. Use when you want an additional
 
 # Co-Plan: Generate a Parallel Plan via Codex
 
-## Step 1: Spawn a Background Subagent for Codex
+## How Codex Is Reached
 
-You MUST immediately spawn a **background subagent** (using the Task tool with `run_in_background: true`) to handle all communication with Codex. The subagent should:
+Codex runs through its CLI, driven by the helper script `scripts/codex-session`, which lives two
+levels above this skill's base directory: call it as `<base directory>/../../scripts/codex-session`.
+It keeps one Codex conversation per session folder and always runs Codex in its read-only sandbox:
 
-1. Call `mcp__validate-plans-and-brainstorm-ideas__codex` with:
-   - `prompt`: `Create a detailed implementation plan for the following task. Think deeply about architecture, steps, edge cases, and trade-offs — but do NOT share the plan yet. If you need to ask clarifying questions about the task before planning, ask them now. Otherwise, when your plan is fully formed and ready, respond with exactly: "My plan is ready to present" and nothing else. Wait for my next message before sharing the plan.\n\nTask: $ARGUMENTS`
-   - `sandbox`: `read-only`
-   - `approval-policy`: `never`
-   - `cwd`: (use the current working directory)
+- `codex-session new <label>` makes a session folder and prints its path
+- `codex-session run <DIR>` sends `<DIR>/prompt.md` as the first message and waits for the reply
+- `codex-session read <DIR>` prints Codex's latest reply
+- `codex-session reply <DIR>` sends a follow-up read from stdin and prints the reply
 
-2. If Codex asks clarifying questions instead of saying it's ready, the subagent should answer them using its own judgment and the codebase context, then wait for Codex to finish and respond with "My plan is ready to present".
+Shell variables do not survive between Bash calls, so always use the literal folder path.
 
-3. Once Codex says "My plan is ready to present", the subagent should report back that Codex is ready (but NOT request the plan yet — that happens in Step 3).
+## Step 1: Start Codex and Hand It to a Background Subagent
 
-The subagent handles the back-and-forth so the main agent is free to do its own work.
+1. Create the session and write Codex's first message, in one Bash call:
+
+   ```bash
+   DIR="$(<base directory>/../../scripts/codex-session new co-plan)" && echo "$DIR"
+   cat > "$DIR/prompt.md" <<'CODEX_PROMPT'
+   Create a detailed implementation plan for the following task. Think deeply about architecture, steps, edge cases, and trade-offs, reading the code in the working directory as needed — but do NOT share the plan yet. If you need to ask clarifying questions about the task before planning, ask them now. Otherwise, when your plan is fully formed and ready, respond with exactly: "My plan is ready to present" and nothing else. Wait for my next message before sharing the plan.
+
+   Task: $ARGUMENTS
+   CODEX_PROMPT
+   ```
+
+2. Spawn a **background subagent** (Agent tool with `run_in_background: true`) to handle all
+   communication with Codex. Give it the helper path and the folder path, and tell it to:
+
+   1. Run `<helper> run <DIR>` in the foreground, with the Bash tool's longest timeout
+      (600000 ms). It can take several minutes.
+   2. Run `<helper> read <DIR>`. If Codex replied "My plan is ready to present", go to step 4.
+   3. If Codex asked clarifying questions instead, answer them using its own judgment and the
+      code in the working directory, by sending a follow-up (quote the heredoc delimiter):
+      `<helper> reply <DIR> <<'CODEX_PROMPT'` … `CODEX_PROMPT`. Then check the reply again as in
+      step 2. If Codex sent its full plan instead of the ready message, treat it as ready.
+   4. Report back only that Codex is ready, the session folder, and how many questions it
+      answered. Do NOT request or repeat Codex's plan; that happens in Step 3.
+
+   The subagent handles the back-and-forth so you are free to do your own work. In a
+   non-interactive session (`claude -p`), do these steps yourself in the foreground instead:
+   background work is killed when that kind of session ends.
 
 ## Step 2: Create Your Own Plan
 
@@ -27,28 +54,38 @@ While the subagent communicates with Codex in the background, create your own in
 
 ## Step 3: Retrieve and Compare
 
-Only after your own plan is finalized, confirm the background subagent has reported that Codex is ready. Then use `mcp__validate-plans-and-brainstorm-ideas__codex-reply` with:
+Only after your plan is complete, confirm the background subagent has reported that Codex is
+ready. Then ask Codex for its plan in the same conversation; the command prints it:
 
-- `threadId`: the thread ID from the Codex session
-- `prompt`: `Go ahead, send the plan.`
+```bash
+<base directory>/../../scripts/codex-session reply <DIR> <<'CODEX_PROMPT'
+Go ahead, send the plan.
+CODEX_PROMPT
+```
+
+If the subagent reported that Codex did not reply, show the user the error it relayed (it names
+the fix, such as `codex login`) and continue with your own plan alone.
 
 Once the plan arrives:
 
-1. Read the Codex plan output.
+1. Read the Codex plan.
 2. Compare it against your own plan and look for:
    - Approaches you missed
    - Simpler alternatives
    - Risks or edge cases you overlooked
 3. Integrate useful ideas into your plan and discard the rest.
 
-## Continuing The Conversation
+## Continuing the Conversation
 
-If you want to discuss the plan further, use `mcp__validate-plans-and-brainstorm-ideas__codex-reply` with:
+To discuss the plan further, send a follow-up in the same Codex conversation. It prints Codex's answer:
 
-- `threadId`: the thread ID from the previous response
-- `prompt`: your follow-up question or counterpoint
+```bash
+<base directory>/../../scripts/codex-session reply <DIR> <<'CODEX_PROMPT'
+your follow-up question or counterpoint
+CODEX_PROMPT
+```
 
-## How To Treat Responses
+## How to Treat Responses
 
 Treat Codex responses as coming from a junior developer:
 

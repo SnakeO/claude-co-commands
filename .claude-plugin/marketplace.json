@@ -6,14 +6,14 @@
     "name": "snakeo"
   },
   "metadata": {
-    "version": "1.3.0"
+    "version": "2.0.0"
   },
   "plugins": [
     {
       "name": "co-commands",
       "source": "./plugins/co-commands",
-      "description": "Commands for /co-plan, /co-validate, and /co-brainstorm via Codex MCP",
-      "version": "1.3.0",
+      "description": "Commands for /co-plan, /co-validate, and /co-brainstorm via the Codex CLI",
+      "version": "2.0.0",
       "category": "development"
     }
   ]

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin (`snakeo-co-commands`) providing three collaboration skills that use OpenAI's Codex MCP server as a second opinion. No compiled code, no build steps, no tests — purely Markdown skill definitions and JSON config.
+A Claude Code plugin (`snakeo-co-commands`) providing three collaboration skills that use OpenAI's Codex as a second opinion, through the Codex CLI. No compiled code and no build steps: Markdown skill definitions, JSON config, and one small shell helper.
 
 ## Architecture
 
@@ -12,6 +12,7 @@ A Claude Code plugin (`snakeo-co-commands`) providing three collaboration skills
 .claude-plugin/marketplace.json   ← marketplace registration (name, version, plugin refs)
 plugins/co-commands/
   plugin.json                     ← plugin definition (auto-discovers skills via glob)
+  scripts/codex-session           ← drives `codex exec` (new / run / read / reply)
   skills/
     co-brainstorm/SKILL.md        ← interactive brainstorming
     co-plan/SKILL.md              ← parallel plan generation
@@ -26,19 +27,37 @@ plugins/co-commands/
 
 All three skills follow the same anti-bias pattern:
 
-1. Launch Codex in background via `mcp__validate-plans-and-brainstorm-ideas__codex` — prompt tells Codex to work but only reply `"I'm ready"`
-2. Agent does its own independent work (brainstorming/planning/reviewing)
-3. Only after finishing its own work, agent calls `codex-reply` to retrieve Codex's output
-4. Compare both independent results
+1. The agent writes Codex's first message into a session folder (`codex-session new`), then spawns a
+   **background subagent** that runs it (`codex-session run`). The prompt tells Codex to ask any
+   clarifying questions first, and otherwise reply only with a skill-specific ready phrase:
+   - co-brainstorm: "My brainstorming is complete and I'm ready to present"
+   - co-plan: "My plan is ready to present"
+   - co-validate: "My review is complete and I'm ready to present"
+2. The subagent answers Codex's clarifying questions (`codex-session reply`) until Codex says it is
+   ready, then reports back without requesting Codex's work.
+3. Meanwhile the agent does its own independent work (brainstorming/planning/reviewing).
+4. Only after finishing, the agent asks Codex to present (`codex-session reply`) and compares.
 
 This prevents the agent from being influenced by Codex's response before forming its own perspective.
 
-## MCP Integration
+## Codex Integration (CLI, since 2.0.0)
 
-All skills use two MCP tools from the `validate-plans-and-brainstorm-ideas` server (wraps `@openai/codex mcp-server`):
+The skills used to call the Codex MCP server (`codex mcp-server`, wrapped as the
+`validate-plans-and-brainstorm-ideas` server). OpenAI removed that command in Codex 0.154.0
+(openai/codex#42993), so 2.0.0 drives the CLI instead through `scripts/codex-session`:
 
-- `mcp__validate-plans-and-brainstorm-ideas__codex` — start a new session (`sandbox: read-only`, `approval-policy: never`)
-- `mcp__validate-plans-and-brainstorm-ideas__codex-reply` — continue via `threadId`
+- `new <label>` makes a temp session folder; `run <dir>` sends `<dir>/prompt.md` with
+  `codex exec --json --sandbox read-only` and saves the reply and the thread id
+- `reply <dir>` continues the thread with `codex exec resume <thread id>`, kept read-only with
+  `-c 'sandbox_mode="read-only"'` (`exec resume` has no `--sandbox` flag)
+- `read <dir>` prints the latest reply
+
+Prompts always go on stdin: nothing needs escaping, and `codex exec` otherwise waits on stdin when
+it is not a terminal. Skills reference the helper as `<base directory>/../../scripts/codex-session`.
+
+Test with a real session (skills load from a folder with `claude --plugin-dir plugins/co-commands`).
+`claude -p` kills background tasks when it exits, so a one-shot headless run never sees the
+subagent finish; test the full flow in an interactive session.
 
 ## Versioning
 
